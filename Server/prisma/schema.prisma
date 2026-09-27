@@ -1,0 +1,129 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  userId              Int       @id @default(autoincrement()) @map("user_id")
+  roleId              Int       @default(1) @map("role_id")
+  email               String    @unique
+  passwordHash        String    @map("password_hash")
+  energyBattery       Int       @default(100) @map("energy_battery")
+  points              Int       @default(0) @map("points")
+  currentStreak       Int       @default(0) @map("current_streak")
+  isActive            Boolean   @default(true) @map("is_active")
+  isEmailVerified     Boolean   @default(false) @map("is_email_verified")
+  resetPasswordToken  String?   @unique @map("reset_password_token")
+  resetPasswordExpires DateTime? @map("reset_password_expires")
+  categoryId          Int?      @map("category_id")
+  totalBreakSessions  Int       @default(0) @map("total_break_sessions")
+  totalBreakMinutes   Int       @default(0) @map("total_break_minutes")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+
+  // Relasi balik (Back-relations)
+  tasks               Task[]
+  categories          Category[]
+  focusSessions       FocusSession[]
+  userSetting         UserSetting?
+  authTokens          UserAuthToken[]
+  statLogs            UserStatLog[]
+
+  @@map("users")
+}
+
+model Task {
+  taskId             Int       @id @default(autoincrement()) @map("task_id")
+  userId             Int       @map("user_id")
+  categoryId         Int?      @map("category_id")
+  title              String    @map("title")
+  estimatedPomodoros Int       @default(1) @map("estimated_pomodoros")
+  completedPomodoros Int       @default(0) @map("completed_pomodoros")
+  isCompleted        Boolean   @default(false) @map("is_completed")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  deletedAt          DateTime? @map("deleted_at")
+
+  user          User           @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  category      Category?      @relation(fields: [categoryId], references: [categoryId], onDelete: SetNull)
+  focusSessions FocusSession[]
+
+  @@map("tasks")
+}
+
+model Category {
+  categoryId Int       @id @default(autoincrement()) @map("category_id")
+  userId     Int       @map("user_id")
+  name       String    @map("name")
+  colorHex   String?   @map("color_hex")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  user  User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  tasks Task[]
+
+  @@map("categories")
+}
+
+model FocusSession {
+  sessionId   Int       @id @default(autoincrement()) @map("session_id")
+  userId      Int       @map("user_id")
+  taskId      Int?      @map("task_id")
+  duration    Int       @map("duration")
+  status      String    @default("COMPLETED") @map("status")
+  sessionType String    @default("FOCUS") @map("session_type")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  user User  @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  task Task? @relation(fields: [taskId], references: [taskId], onDelete: SetNull)
+
+  @@map("focus_sessions")
+}
+
+model UserSetting {
+  settingId       Int      @id @default(autoincrement()) @map("setting_id")
+  userId          Int      @unique @map("user_id")
+  focusDuration   Int      @default(25) @map("focus_duration")
+  shortBreak      Int      @default(5) @map("short_break")
+  longBreak       Int      @default(15) @map("long_break")
+  autoStartBreaks Boolean  @default(false) @map("auto_start_breaks")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model UserAuthToken {
+  tokenId   Int      @id @default(autoincrement()) @map("token_id")
+  userId    Int      @map("user_id")
+  token     String   @map("token") @db.Text
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@map("user_auth_tokens")
+}
+
+model UserStatLog {
+  logId     Int      @id @default(autoincrement()) @map("log_id")
+  userId    Int      @map("user_id")
+  logDate   DateTime @default(now()) @map("log_date")
+  sessions  Int      @default(0) @map("sessions")
+  minutes   Int      @default(0) @map("minutes")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@map("user_stat_logs")
+}
